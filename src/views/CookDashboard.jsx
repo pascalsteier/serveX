@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export default function CookDashboard({ orders, updateOrderStatus, updateItemStatus, updateCourseStatus }) {
+export default function CookDashboard({ orders, updateOrderStatus, updateItemStatus, updateCourseStatus, serveReadyCourses }) {
     const [visibleColumns, setVisibleColumns] = useState({
         pending: true,
         cooking: true,
@@ -168,13 +168,22 @@ export default function CookDashboard({ orders, updateOrderStatus, updateItemSta
                                 order.status === 'Ready' ? 'PRÊT' :
                                     order.status === 'Served' ? 'SERVI' : order.status}
                     </span>
+                    {order.status === 'Cooking' && (
+                        <button
+                            className="ready-btn"
+                            onClick={() => updateOrderStatus(order.id, 'Ready')}
+                            title="Tout marquer comme prêt"
+                        >
+                            ✓ TOUT PRÊT
+                        </button>
+                    )}
                     {order.status === 'Ready' && (
                         <button
                             className="ready-btn"
-                            onClick={() => handleOrderComplete(order.id)}
-                            title="Marquer comme servi"
+                            onClick={() => serveReadyCourses(order.id)}
+                            title="Marquer les plats prêts comme servis"
                         >
-                            ✓ SERVI
+                            ✓ SERVICE ENVOYÉ
                         </button>
                     )}
                 </div>

@@ -1,152 +1,131 @@
 import { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
 import { MENU_ITEMS as INITIAL_MENU } from '../data/menu';
 
-const STORAGE_KEY = 'servex_menu';
-
 export function useMenu() {
-    const [menuItems, setMenuItems] = useState(() => {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        return saved ? JSON.parse(saved) : INITIAL_MENU;
-    });
+    const [menuItems, setMenuItems] = useState([]);
 
+    // Fetch Menu & Subscribe to Realtime
     useEffect(() => {
-        const handleStorageChange = (e) => {
-            if (e.key === STORAGE_KEY) {
-                setMenuItems(e.newValue ? JSON.parse(e.newValue) : INITIAL_MENU);
-            }
+        fetchMenu();
+
+        const subscription = supabase
+            .channel('menu_items')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'menu_items' }, (payload) => {
+                fetchMenu(); // Refresh on any change
+            })
+            .subscribe();
+
+        return () => {
+            subscription.unsubscribe();
         };
-        window.addEventListener('storage', handleStorageChange);
-        return () => window.removeEventListener('storage', handleStorageChange);
     }, []);
 
-    const updateMenuStorage = (newItems) => {
-        setMenuItems(newItems);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(newItems));
-        window.dispatchEvent(new Event('menu-storage-update'));
+    const fetchMenu = async () => {
+        const { data, error } = await supabase
+            .from('menu_items')
+            .select('*')
+            .order('name');
+
+        if (error) {
+            console.error('Error fetching menu:', error);
+            return;
+        }
+
+        // Map snake_case to camelCase
+        const mappedItems = data.map(item => ({
+            id: item.id,
+            name: item.name,
+            priceMidi: item.price_midi,
+            priceSoir: item.price_soir,
+            category: item.category,
+            stock: item.stock,
+            isAlaCarte: item.is_ala_carte,
+            itemType: item.item_type
+        }));
+
+        // Seed if empty
+        if (mappedItems.length === 0) {
+            seedMenu();
+        } else {
+            setMenuItems(mappedItems);
+        }
     };
 
-    // Listen for local updates
-    useEffect(() => {
-        const handleLocalUpdate = () => {
-            const saved = localStorage.getItem(STORAGE_KEY);
-            if (saved) setMenuItems(JSON.parse(saved));
-        }
-        window.addEventListener('menu-storage-update', handleLocalUpdate);
-        return () => window.removeEventListener('menu-storage-update', handleLocalUpdate);
-    }, []);
+    const seedMenu = async () => {
+        // Double check count to prevent race conditions
+        const { count } = await supabase.from('menu_items').select('*', { count: 'exact', head: true });
+        if (count > 0) return;
 
-    // Initialize stock if missing (migration for existing data)
-    useEffect(() => {
-        const hasMissingStock = menuItems.some(item => item.stock === undefined);
-        if (hasMissingStock) {
-            const updatedItems = menuItems.map(item => ({
-                ...item,
-                stock: item.stock !== undefined ? item.stock : 20 // Default stock
-            }));
-            updateMenuStorage(updatedItems);
-        }
-    }, []);
+        const itemsToInsert = INITIAL_MENU.map(item => ({
+            name: item.name,
+            price_midi: item.priceMidi || item.price || 0,
+            price_soir: item.priceSoir || item.price || 0,
+            category: item.category,
+            stock: 20,
+            is_ala_carte: false,
+            item_type: item.itemType || 'dish'
+        }));
 
-    // Migrate from single price to dual pricing (migration for existing data)
-    useEffect(() => {
-        const hasSinglePrice = menuItems.some(item => item.price !== undefined && (item.priceMidi === undefined || item.priceSoir === undefined));
-        if (hasSinglePrice) {
-            const updatedItems = menuItems.map(item => ({
-                ...item,
-                priceMidi: item.priceMidi !== undefined ? item.priceMidi : (item.price || 0),
-                priceSoir: item.priceSoir !== undefined ? item.priceSoir : (item.price || 0),
-                price: undefined // Remove old price field
-            }));
-            updateMenuStorage(updatedItems);
-        }
-    }, []);
+        const { error } = await supabase.from('menu_items').insert(itemsToInsert);
+        if (error) console.error('Error seeding menu:', error);
+    };
 
-    // Migration: Update categories and add new items
-    useEffect(() => {
-        let hasChanges = false;
-        let updatedItems = [...menuItems];
+    const addMenuItem = async (item) => {
+        const newItem = {
+            name: item.name,
+            price_midi: item.priceMidi,
+            price_soir: item.priceSoir,
+            category: item.category,
+            stock: item.stock || 20,
+            is_ala_carte: item.isAlaCarte,
+            item_type: item.itemType || 'dish'
+        };
+        await supabase.from('menu_items').insert([newItem]);
+    };
 
-        // 1. Update categories for existing items based on INITIAL_MENU
-        updatedItems = updatedItems.map(item => {
-            const initialItem = INITIAL_MENU.find(i => i.id === item.id);
-            if (initialItem && item.category !== initialItem.category) {
-                hasChanges = true;
-                return { ...item, category: initialItem.category };
+    const removeMenuItem = async (id) => {
+        await supabase.from('menu_items').delete().eq('id', id);
+    };
+
+    const updateMenuItem = async (id, updates) => {
+        const dbUpdates = {};
+        if (updates.name) dbUpdates.name = updates.name;
+        if (updates.priceMidi) dbUpdates.price_midi = updates.priceMidi;
+        if (updates.priceSoir) dbUpdates.price_soir = updates.priceSoir;
+        if (updates.category) dbUpdates.category = updates.category;
+        if (updates.stock !== undefined) dbUpdates.stock = updates.stock;
+        if (updates.isAlaCarte !== undefined) dbUpdates.is_ala_carte = updates.isAlaCarte;
+
+        await supabase.from('menu_items').update(dbUpdates).eq('id', id);
+    };
+
+    const updateItemStock = async (id, newStock) => {
+        await supabase.from('menu_items').update({ stock: newStock }).eq('id', id);
+    };
+
+    const decrementStock = async (orderedItems) => {
+        // Optimistic update or sequential update?
+        // For simplicity, we loop. In production, use RPC for atomic updates.
+        for (const item of orderedItems) {
+            // Fetch current stock first to be safe, or just decrement
+            // Supabase doesn't have a simple "decrement" without RPC, so we read-modify-write
+            // This is a race condition risk but acceptable for prototype
+            const { data } = await supabase.from('menu_items').select('stock').eq('id', item.id).single();
+            if (data) {
+                const newStock = Math.max(0, data.stock - 1);
+                await supabase.from('menu_items').update({ stock: newStock }).eq('id', item.id);
             }
-            return item;
-        });
-
-        // 2. Add missing items from INITIAL_MENU
-        INITIAL_MENU.forEach(initialItem => {
-            if (!updatedItems.find(item => item.id === initialItem.id)) {
-                hasChanges = true;
-                updatedItems.push({ ...initialItem, stock: 20 }); // Default stock for new items
-            }
-        });
-
-        if (hasChanges) {
-            updateMenuStorage(updatedItems);
         }
-    }, []);
+    };
 
-    // Migration: Initialize isAlaCarte field for existing items
-    useEffect(() => {
-        const hasMissingAlaCarte = menuItems.some(item => item.isAlaCarte === undefined);
-        if (hasMissingAlaCarte) {
-            const updatedItems = menuItems.map(item => ({
-                ...item,
-                isAlaCarte: item.isAlaCarte !== undefined ? item.isAlaCarte : false // Default: part of menu
-            }));
-            updateMenuStorage(updatedItems);
+    const incrementStock = async (orderedItems) => {
+        for (const item of orderedItems) {
+            const { data } = await supabase.from('menu_items').select('stock').eq('id', item.id).single();
+            if (data) {
+                await supabase.from('menu_items').update({ stock: data.stock + 1 }).eq('id', item.id);
+            }
         }
-    }, []);
-
-
-    const addMenuItem = (item) => {
-        const newItem = { ...item, id: Date.now(), stock: 20 };
-        updateMenuStorage([...menuItems, newItem]);
-    };
-
-    const removeMenuItem = (id) => {
-        updateMenuStorage(menuItems.filter(item => item.id !== id));
-    };
-
-    const updateMenuItem = (id, updates) => {
-        updateMenuStorage(menuItems.map(item => item.id === id ? { ...item, ...updates } : item));
-    };
-
-    const updateItemStock = (id, newStock) => {
-        updateMenuStorage(menuItems.map(item => item.id === id ? { ...item, stock: newStock } : item));
-    };
-
-    const decrementStock = (orderedItems) => {
-        const itemCounts = {};
-        orderedItems.forEach(item => {
-            itemCounts[item.id] = (itemCounts[item.id] || 0) + 1;
-        });
-
-        const updatedItems = menuItems.map(item => {
-            if (itemCounts[item.id]) {
-                return { ...item, stock: Math.max(0, item.stock - itemCounts[item.id]) };
-            }
-            return item;
-        });
-        updateMenuStorage(updatedItems);
-    };
-
-    const incrementStock = (orderedItems) => {
-        const itemCounts = {};
-        orderedItems.forEach(item => {
-            itemCounts[item.id] = (itemCounts[item.id] || 0) + 1;
-        });
-
-        const updatedItems = menuItems.map(item => {
-            if (itemCounts[item.id]) {
-                return { ...item, stock: item.stock + itemCounts[item.id] };
-            }
-            return item;
-        });
-        updateMenuStorage(updatedItems);
     };
 
     return { menuItems, addMenuItem, removeMenuItem, updateMenuItem, updateItemStock, decrementStock, incrementStock };

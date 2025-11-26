@@ -609,11 +609,7 @@ export default function ManagerDashboard({ menuItems, addMenuItem, removeMenuIte
                             </span>
                             <button
                                 className="end-service-btn"
-                                onClick={() => {
-                                    if (window.confirm('Êtes-vous sûr de vouloir terminer le service ? Cela archivera toutes les commandes actuelles.')) {
-                                        endService();
-                                    }
-                                }}
+                                onClick={endService}
                                 style={{ backgroundColor: '#CF6679', color: 'white' }}
                             >
                                 Terminer le Service
