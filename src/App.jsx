@@ -8,7 +8,7 @@ import { useMenu } from './hooks/useMenu';
 
 function App() {
   const [role, setRole] = useState(null); // 'waiter' | 'cook' | 'manager' | null
-  const { orders, addOrder, updateOrderStatus, updateItemStatus, deleteOrder, updateOrder, updateCourseStatus } = useOrders();
+  const { orders, addOrder, updateOrderStatus, updateItemStatus, deleteOrder, updateOrder, updateCourseStatus, startService, endService, serviceStartTime, sessions } = useOrders();
   const { menuItems, addMenuItem, removeMenuItem, updateMenuItem, updateItemStock, decrementStock, incrementStock } = useMenu();
 
   if (!role) {
@@ -69,6 +69,10 @@ function App() {
             updateMenuItem={updateMenuItem}
             updateItemStock={updateItemStock}
             orders={orders}
+            startService={startService}
+            endService={endService}
+            serviceStartTime={serviceStartTime}
+            sessions={sessions}
           />
         )}
       </main>

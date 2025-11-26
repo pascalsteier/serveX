@@ -10,6 +10,12 @@ export default function WaiterDashboard({ orders, addOrder, menuItems, decrement
     const [expandedMenus, setExpandedMenus] = useState({});
     const [coverCount, setCoverCount] = useState('2');
     const [orderType, setOrderType] = useState('dine-in');
+    const [visibleColumns, setVisibleColumns] = useState({
+        pending: true,
+        cooking: true,
+        served: true
+    });
+
 
     const addToOrder = (item) => {
         if (item.stock <= 0) return;
@@ -272,22 +278,33 @@ export default function WaiterDashboard({ orders, addOrder, menuItems, decrement
                                             </div>
                                         </div>
 
-                                        {/* Course Status Indicators */}
-                                        {order.courseStatus && (
-                                            <div className="course-status-indicators">
-                                                {['starter', 'main', 'cheese', 'dessert'].map(course => {
-                                                    const status = order.courseStatus[course];
-                                                    if (status === 'Pending') return null;
+                                        {/* Course Status Indicators - Only show for relevant course */}
+                                        {order.courseStatus && (() => {
+                                            // Map category to course key
+                                            const categoryToCourse = {
+                                                'Starter': 'starter',
+                                                'Main': 'main',
+                                                'Cheese': 'cheese',
+                                                'Dessert': 'dessert'
+                                            };
 
-                                                    const labels = { starter: 'Entrée', main: 'Plat', cheese: 'Fromage', dessert: 'Dessert' };
-                                                    return (
-                                                        <div key={course} className={`course-status-badge status-${status.toLowerCase()}`}>
-                                                            {labels[course]}: {status === 'Ready' ? 'PRÊT' : status}
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        )}
+                                            const courseKey = categoryToCourse[catKey];
+                                            if (!courseKey) return null; // No course status for Drinks
+
+                                            const status = order.courseStatus[courseKey];
+                                            if (!status || status === 'Pending') return null;
+
+                                            const labels = { starter: 'Entrée', main: 'Plat', cheese: 'Fromage', dessert: 'Dessert' };
+
+                                            return (
+                                                <div className="course-status-indicators">
+                                                    <div className={`course-status-badge status-${status.toLowerCase()}`}>
+                                                        {labels[courseKey]}: {status === 'Ready' ? 'PRÊT' : status}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
+
 
                                         {/* Items */}
                                         {items.map((item, idx) => {
@@ -346,43 +363,74 @@ export default function WaiterDashboard({ orders, addOrder, menuItems, decrement
         <div className="dashboard waiter-dashboard-columns">
             <div className="dashboard-header">
                 <h2>Commandes en cours</h2>
-                <button className="add-btn" onClick={() => setIsModalOpen(true)}>+ Nouvelle Commande</button>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: '8px', background: 'rgba(255,255,255,0.05)', padding: '4px', borderRadius: '8px' }}>
+                        <button
+                            className={`filter-toggle-btn ${visibleColumns.pending ? 'active' : ''}`}
+                            onClick={() => setVisibleColumns(prev => ({ ...prev, pending: !prev.pending }))}
+                            title="Afficher/masquer En attente"
+                        >
+                            En attente
+                        </button>
+                        <button
+                            className={`filter-toggle-btn ${visibleColumns.cooking ? 'active' : ''}`}
+                            onClick={() => setVisibleColumns(prev => ({ ...prev, cooking: !prev.cooking }))}
+                            title="Afficher/masquer En préparation"
+                        >
+                            En préparation
+                        </button>
+                        <button
+                            className={`filter-toggle-btn ${visibleColumns.served ? 'active' : ''}`}
+                            onClick={() => setVisibleColumns(prev => ({ ...prev, served: !prev.served }))}
+                            title="Afficher/masquer Servi"
+                        >
+                            Servi
+                        </button>
+                    </div>
+                    <button className="add-btn" onClick={() => setIsModalOpen(true)}>+ Nouvelle Commande</button>
+                </div>
             </div>
 
 
             <div className="orders-columns">
-                <div className="order-column">
-                    <h3 className="column-title pending-title">En attente</h3>
-                    <div className="column-cards">
-                        {pendingOrders.length === 0 ? (
-                            <p className="empty-column">Aucune commande en attente</p>
-                        ) : (
-                            pendingOrders.slice().reverse().map(renderOrderCard)
-                        )}
+                {visibleColumns.pending && (
+                    <div className="order-column">
+                        <h3 className="column-title pending-title">En attente</h3>
+                        <div className="column-cards">
+                            {pendingOrders.length === 0 ? (
+                                <p className="empty-column">Aucune commande en attente</p>
+                            ) : (
+                                pendingOrders.slice().reverse().map(renderOrderCard)
+                            )}
+                        </div>
                     </div>
-                </div>
+                )}
 
-                <div className="order-column">
-                    <h3 className="column-title cooking-title">En préparation</h3>
-                    <div className="column-cards">
-                        {cookingOrders.length === 0 ? (
-                            <p className="empty-column">Aucune commande en préparation</p>
-                        ) : (
-                            cookingOrders.slice().reverse().map(renderOrderCard)
-                        )}
+                {visibleColumns.cooking && (
+                    <div className="order-column">
+                        <h3 className="column-title cooking-title">En préparation</h3>
+                        <div className="column-cards">
+                            {cookingOrders.length === 0 ? (
+                                <p className="empty-column">Aucune commande en préparation</p>
+                            ) : (
+                                cookingOrders.slice().reverse().map(renderOrderCard)
+                            )}
+                        </div>
                     </div>
-                </div>
+                )}
 
-                <div className="order-column">
-                    <h3 className="column-title served-title">Servi</h3>
-                    <div className="column-cards">
-                        {servedOrders.length === 0 ? (
-                            <p className="empty-column">Aucune commande servie</p>
-                        ) : (
-                            servedOrders.slice().reverse().map(renderOrderCard)
-                        )}
+                {visibleColumns.served && (
+                    <div className="order-column">
+                        <h3 className="column-title served-title">Servi</h3>
+                        <div className="column-cards">
+                            {servedOrders.length === 0 ? (
+                                <p className="empty-column">Aucune commande servie</p>
+                            ) : (
+                                servedOrders.slice().reverse().map(renderOrderCard)
+                            )}
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
 
             {/* Modal */}

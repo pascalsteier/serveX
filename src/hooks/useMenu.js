@@ -89,6 +89,19 @@ export function useMenu() {
         }
     }, []);
 
+    // Migration: Initialize isAlaCarte field for existing items
+    useEffect(() => {
+        const hasMissingAlaCarte = menuItems.some(item => item.isAlaCarte === undefined);
+        if (hasMissingAlaCarte) {
+            const updatedItems = menuItems.map(item => ({
+                ...item,
+                isAlaCarte: item.isAlaCarte !== undefined ? item.isAlaCarte : false // Default: part of menu
+            }));
+            updateMenuStorage(updatedItems);
+        }
+    }, []);
+
+
     const addMenuItem = (item) => {
         const newItem = { ...item, id: Date.now(), stock: 20 };
         updateMenuStorage([...menuItems, newItem]);

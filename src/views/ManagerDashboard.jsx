@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useEmployees } from '../hooks/useEmployees';
 
-export default function ManagerDashboard({ menuItems, addMenuItem, removeMenuItem, updateMenuItem, updateItemStock, orders }) {
+export default function ManagerDashboard({ menuItems, addMenuItem, removeMenuItem, updateMenuItem, updateItemStock, orders, startService, endService, serviceStartTime, sessions }) {
     const [activeTab, setActiveTab] = useState('inventory');
     const [newItemName, setNewItemName] = useState('');
     const [newItemStock, setNewItemStock] = useState('20');
@@ -9,7 +9,9 @@ export default function ManagerDashboard({ menuItems, addMenuItem, removeMenuIte
     const [newItemPriceMidi, setNewItemPriceMidi] = useState('');
     const [newItemPriceSoir, setNewItemPriceSoir] = useState('');
     const [newItemCategory, setNewItemCategory] = useState('Plat');
+    const [newItemIsAlaCarte, setNewItemIsAlaCarte] = useState(false);
     const [editingItemId, setEditingItemId] = useState(null);
+    const [selectedSession, setSelectedSession] = useState(null); // For history details
 
     const { employees, addEmployee, removeEmployee, updateSchedule } = useEmployees();
     const [newEmployeeName, setNewEmployeeName] = useState('');
@@ -65,7 +67,8 @@ export default function ManagerDashboard({ menuItems, addMenuItem, removeMenuIte
             priceSoir: parseFloat(newItemPriceSoir),
             category: newItemCategory,
             menuCourse: newItemCategory,
-            stock: parseInt(newItemStock) || 20
+            stock: parseInt(newItemStock) || 20,
+            isAlaCarte: newItemIsAlaCarte
         });
 
         setNewItemName('');
@@ -73,6 +76,7 @@ export default function ManagerDashboard({ menuItems, addMenuItem, removeMenuIte
         setNewItemPriceSoir('');
         setNewItemCategory('Plat');
         setNewItemStock('20');
+        setNewItemIsAlaCarte(false);
         setNewItemStock('20');
     };
 
@@ -260,6 +264,14 @@ export default function ManagerDashboard({ menuItems, addMenuItem, removeMenuIte
                         onChange={(e) => setNewItemStock(e.target.value)}
                         min="0"
                     />
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                        <input
+                            type="checkbox"
+                            checked={newItemIsAlaCarte}
+                            onChange={(e) => setNewItemIsAlaCarte(e.target.checked)}
+                        />
+                        <span>À la carte</span>
+                    </label>
                     <button type="submit">Ajouter le plat</button>
                 </form>
             </div>
@@ -364,6 +376,32 @@ export default function ManagerDashboard({ menuItems, addMenuItem, removeMenuIte
                                 )}
                             </div>
 
+                            {/* À la carte Row */}
+                            <div className="menu-card-row">
+                                <label>À la carte:</label>
+                                {isEditing ? (
+                                    <input
+                                        type="checkbox"
+                                        checked={item.isAlaCarte || false}
+                                        onChange={(e) => updateMenuItem(item.id, { isAlaCarte: e.target.checked })}
+                                        style={{ cursor: 'pointer' }}
+                                    />
+                                ) : (
+                                    <span style={{ padding: '8px 12px' }}>
+                                        {item.isAlaCarte ? (
+                                            <span style={{
+                                                background: 'rgba(187, 134, 252, 0.3)',
+                                                padding: '4px 8px',
+                                                borderRadius: '4px',
+                                                fontSize: '0.9em'
+                                            }}>✓ À la carte</span>
+                                        ) : (
+                                            <span style={{ color: 'var(--color-text-secondary)' }}>Menu</span>
+                                        )}
+                                    </span>
+                                )}
+                            </div>
+
                             {/* Actions Row */}
                             <div className="menu-card-actions">
                                 {isEditing ? (
@@ -397,58 +435,100 @@ export default function ManagerDashboard({ menuItems, addMenuItem, removeMenuIte
 
     const renderHistoryTab = () => (
         <div className="tab-content">
-            <div className="history-summary">
-                <div className="history-stat-card">
-                    <div className="history-stat-label">Revenu Total</div>
-                    <div className="history-stat-value">€{analytics.totalRevenue.toFixed(2)}</div>
-                </div>
-                <div className="history-stat-card">
-                    <div className="history-stat-label">Articles Vendus</div>
-                    <div className="history-stat-value">
-                        {Object.values(analytics.itemCounts).reduce((a, b) => a + b, 0)}
+            <h3>Historique des Services</h3>
+
+            {selectedSession ? (
+                <div className="session-detail-view">
+                    <button className="back-btn" onClick={() => setSelectedSession(null)}>← Retour à la liste</button>
+
+                    <div className="session-header-detail">
+                        <h4>Service du {new Date(selectedSession.startTime).toLocaleDateString()}</h4>
+                        <span className="session-time">
+                            {new Date(selectedSession.startTime).toLocaleTimeString()} - {new Date(selectedSession.endTime).toLocaleTimeString()}
+                        </span>
+                    </div>
+
+                    <div className="summary-stats">
+                        <div className="stat-box">
+                            <span className="stat-label">Chiffre d'Affaires</span>
+                            <span className="stat-value">{selectedSession.metrics.totalRevenue.toFixed(2)}€</span>
+                        </div>
+                        <div className="stat-box">
+                            <span className="stat-label">Couverts</span>
+                            <span className="stat-value">{selectedSession.metrics.totalCovers}</span>
+                        </div>
+                        <div className="stat-box">
+                            <span className="stat-label">Commandes</span>
+                            <span className="stat-value">{selectedSession.metrics.totalOrders}</span>
+                        </div>
+                        <div className="stat-box">
+                            <span className="stat-label">Panier Moyen</span>
+                            <span className="stat-value">
+                                {selectedSession.metrics.totalOrders > 0
+                                    ? (selectedSession.metrics.totalRevenue / selectedSession.metrics.totalOrders).toFixed(2)
+                                    : '0.00'}€
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="session-analysis-grid">
+                        <div className="analysis-card">
+                            <h4>Top 5 Plats</h4>
+                            <ul className="top-items-list">
+                                {selectedSession.metrics.topItems.map((item, idx) => (
+                                    <li key={idx} className="top-item-row">
+                                        <span className="item-rank">#{idx + 1}</span>
+                                        <span className="item-name">{item.name}</span>
+                                        <span className="item-qty">x{item.quantity}</span>
+                                        <span className="item-rev">{item.revenue.toFixed(2)}€</span>
+                                    </li>
+                                ))}
+                                {selectedSession.metrics.topItems.length === 0 && <p>Aucune donnée</p>}
+                            </ul>
+                        </div>
                     </div>
                 </div>
-                <div className="history-stat-card">
-                    <div className="history-stat-label">Commandes Servies</div>
-                    <div className="history-stat-value">
-                        {orders.filter(o => o.status === 'Served').length}
-                    </div>
+            ) : (
+                <div className="sessions-list">
+                    {sessions.length === 0 ? (
+                        <p className="empty-state">Aucun historique de service disponible.</p>
+                    ) : (
+                        <table className="analytics-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Début</th>
+                                    <th>Fin</th>
+                                    <th>Commandes</th>
+                                    <th>Couverts</th>
+                                    <th>Revenu</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {sessions.map(session => (
+                                    <tr key={session.id}>
+                                        <td>{new Date(session.startTime).toLocaleDateString()}</td>
+                                        <td>{new Date(session.startTime).toLocaleTimeString()}</td>
+                                        <td>{new Date(session.endTime).toLocaleTimeString()}</td>
+                                        <td>{session.metrics.totalOrders}</td>
+                                        <td>{session.metrics.totalCovers}</td>
+                                        <td>{session.metrics.totalRevenue.toFixed(2)}€</td>
+                                        <td>
+                                            <button
+                                                className="action-btn"
+                                                onClick={() => setSelectedSession(session)}
+                                            >
+                                                Détails
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
                 </div>
-            </div>
-
-            <div className="history-table-container">
-                <h3>Articles consommés</h3>
-                {Object.keys(analytics.itemCounts).length === 0 ? (
-                    <p className="empty-state">Aucun article servi</p>
-                ) : (
-                    <table className="history-table">
-                        <thead>
-                            <tr>
-                                <th>Article</th>
-                                <th>Quantité</th>
-                                <th>Revenu estimé</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {Object.entries(analytics.itemCounts)
-                                .sort(([, a], [, b]) => b - a)
-                                .map(([name, count]) => {
-                                    const item = menuItems.find(i => i.name === name);
-                                    const avgPrice = item ? ((item.priceMidi || 0) + (item.priceSoir || 0)) / 2 : 0;
-                                    const revenue = avgPrice * count;
-
-                                    return (
-                                        <tr key={name}>
-                                            <td>{name}</td>
-                                            <td>{count}</td>
-                                            <td>€{revenue.toFixed(2)}</td>
-                                        </tr>
-                                    );
-                                })}
-                        </tbody>
-                    </table>
-                )}
-            </div>
+            )}
         </div>
     );
 
@@ -519,8 +599,36 @@ export default function ManagerDashboard({ menuItems, addMenuItem, removeMenuIte
 
     return (
         <div className="dashboard manager-dashboard">
-            <div className="dashboard-header">
-                <h2>Gestion</h2>
+            <div className="manager-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <h2>Dashboard Manager</h2>
+                <div className="service-controls">
+                    {serviceStartTime ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                            <span className="service-status active">
+                                🟢 Service en cours (Début: {new Date(serviceStartTime).toLocaleTimeString()})
+                            </span>
+                            <button
+                                className="end-service-btn"
+                                onClick={() => {
+                                    if (window.confirm('Êtes-vous sûr de vouloir terminer le service ? Cela archivera toutes les commandes actuelles.')) {
+                                        endService();
+                                    }
+                                }}
+                                style={{ backgroundColor: '#CF6679', color: 'white' }}
+                            >
+                                Terminer le Service
+                            </button>
+                        </div>
+                    ) : (
+                        <button
+                            className="start-service-btn"
+                            onClick={startService}
+                            style={{ backgroundColor: '#03DAC6', color: 'black' }}
+                        >
+                            Démarrer le Service
+                        </button>
+                    )}
+                </div>
             </div>
 
             <div className="tab-navigation">

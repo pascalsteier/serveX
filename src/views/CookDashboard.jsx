@@ -1,4 +1,11 @@
+import { useState } from 'react';
+
 export default function CookDashboard({ orders, updateOrderStatus, updateItemStatus, updateCourseStatus }) {
+    const [visibleColumns, setVisibleColumns] = useState({
+        pending: true,
+        cooking: true,
+        ready: true
+    });
     const handleItemStatusChange = (orderId, itemInstanceId, currentStatus = 'Pending') => {
         let nextStatus;
         if (currentStatus === 'Pending') nextStatus = 'Cooking';
@@ -7,6 +14,55 @@ export default function CookDashboard({ orders, updateOrderStatus, updateItemSta
 
         if (nextStatus) {
             updateItemStatus(orderId, itemInstanceId, nextStatus);
+
+            // Auto-mark course as ready if all items in the course are ready
+            if (nextStatus === 'Ready') {
+                // Find the order and the item that was just updated
+                const order = orders.find(o => o.id === orderId);
+                if (order) {
+                    // Determine which course this item belongs to
+                    const updatedItem = order.items.find(i => i.instanceId === itemInstanceId);
+                    if (updatedItem) {
+                        const categoryToCourse = {
+                            'Starter': 'starter',
+                            'Main': 'main',
+                            'Side': 'main', // Sides are part of main course
+                            'Cheese': 'cheese',
+                            'Dessert': 'dessert'
+                        };
+
+                        const courseKey = categoryToCourse[updatedItem.category];
+
+                        if (courseKey) {
+                            // Get all items in this course
+                            const courseCategories = {
+                                'starter': ['Starter'],
+                                'main': ['Main', 'Side'],
+                                'cheese': ['Cheese'],
+                                'dessert': ['Dessert']
+                            };
+
+                            const relevantCategories = courseCategories[courseKey];
+                            const courseItems = order.items.filter(item =>
+                                relevantCategories.includes(item.category)
+                            );
+
+                            // Check if all items in this course will be Ready (including the one we just updated)
+                            const allItemsReady = courseItems.every(item =>
+                                item.instanceId === itemInstanceId ? true : item.status === 'Ready'
+                            );
+
+                            // Auto-mark course as ready if not already marked and all items are ready
+                            if (allItemsReady && (!order.courseStatus || order.courseStatus[courseKey] !== 'Ready')) {
+                                // Small delay to ensure item status is updated first
+                                setTimeout(() => {
+                                    handleCourseReady(orderId, courseKey);
+                                }, 100);
+                            }
+                        }
+                    }
+                }
+            }
         }
     };
 
@@ -130,41 +186,70 @@ export default function CookDashboard({ orders, updateOrderStatus, updateItemSta
         <div className="dashboard cook-dashboard-columns">
             <div className="dashboard-header">
                 <h2>Vue Cuisine</h2>
+                <div style={{ display: 'flex', gap: '8px', background: 'rgba(255,255,255,0.05)', padding: '4px', borderRadius: '8px' }}>
+                    <button
+                        className={`filter-toggle-btn ${visibleColumns.pending ? 'active' : ''}`}
+                        onClick={() => setVisibleColumns(prev => ({ ...prev, pending: !prev.pending }))}
+                        title="Afficher/masquer En attente"
+                    >
+                        En attente
+                    </button>
+                    <button
+                        className={`filter-toggle-btn ${visibleColumns.cooking ? 'active' : ''}`}
+                        onClick={() => setVisibleColumns(prev => ({ ...prev, cooking: !prev.cooking }))}
+                        title="Afficher/masquer En préparation"
+                    >
+                        En préparation
+                    </button>
+                    <button
+                        className={`filter-toggle-btn ${visibleColumns.ready ? 'active' : ''}`}
+                        onClick={() => setVisibleColumns(prev => ({ ...prev, ready: !prev.ready }))}
+                        title="Afficher/masquer Prêt"
+                    >
+                        Prêt
+                    </button>
+                </div>
             </div>
 
             <div className="orders-columns">
-                <div className="order-column">
-                    <h3 className="column-title pending-title">En attente</h3>
-                    <div className="column-cards">
-                        {pendingOrders.length === 0 ? (
-                            <p className="empty-column">Aucune commande en attente</p>
-                        ) : (
-                            pendingOrders.map(renderOrderCard)
-                        )}
+                {visibleColumns.pending && (
+                    <div className="order-column">
+                        <h3 className="column-title pending-title">En attente</h3>
+                        <div className="column-cards">
+                            {pendingOrders.length === 0 ? (
+                                <p className="empty-column">Aucune commande en attente</p>
+                            ) : (
+                                pendingOrders.map(renderOrderCard)
+                            )}
+                        </div>
                     </div>
-                </div>
+                )}
 
-                <div className="order-column">
-                    <h3 className="column-title cooking-title">En préparation</h3>
-                    <div className="column-cards">
-                        {cookingOrders.length === 0 ? (
-                            <p className="empty-column">Aucune commande en préparation</p>
-                        ) : (
-                            cookingOrders.map(renderOrderCard)
-                        )}
+                {visibleColumns.cooking && (
+                    <div className="order-column">
+                        <h3 className="column-title cooking-title">En préparation</h3>
+                        <div className="column-cards">
+                            {cookingOrders.length === 0 ? (
+                                <p className="empty-column">Aucune commande en préparation</p>
+                            ) : (
+                                cookingOrders.map(renderOrderCard)
+                            )}
+                        </div>
                     </div>
-                </div>
+                )}
 
-                <div className="order-column">
-                    <h3 className="column-title ready-title">Prêt à servir</h3>
-                    <div className="column-cards">
-                        {readyOrders.length === 0 ? (
-                            <p className="empty-column">Aucune commande prête</p>
-                        ) : (
-                            readyOrders.map(renderOrderCard)
-                        )}
+                {visibleColumns.ready && (
+                    <div className="order-column">
+                        <h3 className="column-title ready-title">Prêt à servir</h3>
+                        <div className="column-cards">
+                            {readyOrders.length === 0 ? (
+                                <p className="empty-column">Aucune commande prête</p>
+                            ) : (
+                                readyOrders.map(renderOrderCard)
+                            )}
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
         </div>
     );

@@ -823,6 +823,34 @@ select {
   margin: 0;
 }
 
+/* Filter Toggle Buttons */
+.filter-toggle-btn {
+  background-color: transparent;
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filter-toggle-btn:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: var(--color-primary);
+}
+
+.filter-toggle-btn.active {
+  background-color: var(--color-primary);
+  color: #000;
+  border-color: var(--color-primary);
+}
+
+.filter-toggle-btn.active:hover {
+  opacity: 0.9;
+}
+
 .orders-columns {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1607,149 +1635,259 @@ select {
 .history-table tr:last-child td {
   border-bottom: none;
 }
+
 /* Tab Navigation */
 .tab-navigation {
-    display: flex;
-    gap: 1rem;
-    margin-bottom: 2rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    padding-bottom: 1rem;
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 1rem;
 }
 
 .tab-btn {
-    background: transparent;
-    border: none;
-    color: var(--text-secondary);
-    font-size: 1.1rem;
-    padding: 0.5rem 1rem;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    border-radius: 8px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 8px;
 }
 
 .tab-btn:hover {
-    color: var(--text-primary);
-    background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .tab-btn.active {
-    color: var(--primary-color);
-    background: rgba(100, 108, 255, 0.1);
-    font-weight: 600;
+  color: var(--primary-color);
+  background: rgba(100, 108, 255, 0.1);
+  font-weight: 600;
 }
 
 /* Employees Table */
 .employees-table-container {
-    overflow-x: auto;
-    margin-top: 1.5rem;
+  overflow-x: auto;
+  margin-top: 1.5rem;
 }
 
 .employees-table {
-    width: 100%;
-    border-collapse: collapse;
-    color: var(--text-primary);
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--text-primary);
 }
 
 .employees-table th,
 .employees-table td {
-    padding: 1rem;
-    text-align: left;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .employees-table th {
-    color: var(--text-secondary);
-    font-weight: 500;
-    font-size: 0.9rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 0.9rem;
 }
 
 .employees-table .day-header {
-    text-align: center;
-    width: 60px;
+  text-align: center;
+  width: 60px;
 }
 
 .employees-table .day-cell {
-    text-align: center;
+  text-align: center;
 }
 
 .employee-name {
-    font-weight: 500;
+  font-weight: 500;
 }
 
 .schedule-checkbox {
-    width: 20px;
-    height: 20px;
-    cursor: pointer;
-    accent-color: var(--primary-color);
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: var(--primary-color);
 }
 
 .empty-table {
-    text-align: center;
-    padding: 3rem;
-    color: var(--text-secondary);
-    font-style: italic;
+  text-align: center;
+  padding: 3rem;
+  color: var(--text-secondary);
+  font-style: italic;
 }
 
 /* Course Tracking */
 .course-group {
-    margin-bottom: var(--spacing-md);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    padding: var(--spacing-sm);
-    background-color: rgba(255, 255, 255, 0.02);
+  margin-bottom: var(--spacing-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-sm);
+  background-color: rgba(255, 255, 255, 0.02);
 }
 
 .course-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: var(--spacing-sm);
-    padding-bottom: var(--spacing-xs);
-    border-bottom: 1px solid var(--color-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-sm);
+  padding-bottom: var(--spacing-xs);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .course-title {
-    font-weight: 600;
-    color: var(--color-text-secondary);
+  font-weight: 600;
+  color: var(--color-text-secondary);
 }
 
 .course-ready-btn {
-    font-size: 0.75rem;
-    padding: 2px 8px;
-    background-color: var(--color-primary);
-    color: #000;
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  background-color: var(--color-primary);
+  color: #000;
 }
 
 .course-status-ready {
-    color: var(--color-secondary);
-    font-weight: bold;
-    font-size: 0.8rem;
+  color: var(--color-secondary);
+  font-weight: bold;
+  font-size: 0.8rem;
+}
+
+/* Service Session Controls */
+.service-controls {
+  display: flex;
+  align-items: center;
+}
+
+.service-status {
+  font-weight: 600;
+  color: var(--color-secondary);
+  padding: 4px 12px;
+  background-color: rgba(3, 218, 198, 0.1);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-secondary);
+}
+
+.start-service-btn,
+.end-service-btn {
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.start-service-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.end-service-btn:hover {
+  opacity: 0.9;
+  background-color: #B00020 !important;
+}
+
+/* Session History */
+.sessions-list {
+  overflow-x: auto;
+}
+
+.session-detail-view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.session-header-detail {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: var(--spacing-md);
+}
+
+.session-header-detail h4 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.session-time {
+  color: var(--color-text-secondary);
+  font-size: 1.1rem;
+}
+
+.session-analysis-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--spacing-lg);
+}
+
+.analysis-card {
+  background-color: var(--color-surface);
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+}
+
+.top-items-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.top-item-row {
+  display: flex;
+  align-items: center;
+  padding: var(--spacing-sm) 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.item-rank {
+  font-weight: bold;
+  color: var(--color-primary);
+  width: 30px;
+}
+
+.item-name {
+  flex-grow: 1;
+}
+
+.item-qty {
+  color: var(--color-text-secondary);
+  margin-right: var(--spacing-md);
+}
+
+.item-rev {
+  font-weight: 600;
+  color: var(--color-secondary);
 }
 
 .course-status-indicators {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--spacing-xs);
-    margin-top: var(--spacing-sm);
-    padding-top: var(--spacing-sm);
-    border-top: 1px solid var(--color-border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-sm);
+  padding-top: var(--spacing-sm);
+  border-top: 1px solid var(--color-border);
 }
 
 .course-status-badge {
-    font-size: 0.75rem;
-    padding: 2px 6px;
-    border-radius: var(--radius-sm);
-    background-color: rgba(255, 255, 255, 0.1);
-    color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--color-text-secondary);
 }
 
 .course-status-badge.status-ready {
-    background-color: rgba(3, 218, 198, 0.2);
-    color: var(--color-secondary);
-    border: 1px solid var(--color-secondary);
+  background-color: rgba(3, 218, 198, 0.2);
+  color: var(--color-secondary);
+  border: 1px solid var(--color-secondary);
 }
 
 .course-status-badge.status-served {
-    text-decoration: line-through;
-    opacity: 0.6;
+  text-decoration: line-through;
+  opacity: 0.6;
 }
