@@ -4,6 +4,7 @@ import { useOrders } from './hooks/useOrders';
 import WaiterDashboard from './views/WaiterDashboard';
 import CookDashboard from './views/CookDashboard';
 import ManagerDashboard from './views/ManagerDashboard';
+import KitchenDisplaySystem from './views/KitchenDisplaySystem';
 import { useMenu } from './hooks/useMenu';
 
 function App() {
@@ -19,6 +20,7 @@ function App() {
         <div className="role-buttons">
           <button onClick={() => setRole('waiter')}>Service</button>
           <button onClick={() => setRole('cook')} className="secondary">Cuisine</button>
+          <button onClick={() => setRole('kds')} className="secondary">KDS</button>
           <button onClick={() => setRole('manager')} className="secondary outline">Gestion</button>
         </div>
       </div>
@@ -29,6 +31,7 @@ function App() {
     switch (role) {
       case 'waiter': return 'Vue Service';
       case 'cook': return 'Vue Cuisine';
+      case 'kds': return 'Kitchen Display System';
       case 'manager': return 'Gestion';
       default: return '';
     }
@@ -60,6 +63,14 @@ function App() {
             updateItemStatus={updateItemStatus}
             updateCourseStatus={updateCourseStatus}
             serveReadyCourses={serveReadyCourses}
+          />
+        )}
+        {role === 'kds' && (
+          <KitchenDisplaySystem
+            orders={orders}
+            updateOrderStatus={updateOrderStatus}
+            updateItemStatus={updateItemStatus}
+            updateCourseStatus={updateCourseStatus}
           />
         )}
         {role === 'manager' && (
