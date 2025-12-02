@@ -20,7 +20,7 @@ function App() {
         <div className="role-buttons">
           <button onClick={() => setRole('waiter')}>Service</button>
           <button onClick={() => setRole('cook')} className="secondary">Cuisine</button>
-          <button onClick={() => setRole('kds')} className="secondary">KDS</button>
+          <button onClick={() => setRole('kds')} className="secondary">Cuisine Bis</button>
           <button onClick={() => setRole('manager')} className="secondary outline">Gestion</button>
         </div>
       </div>
@@ -31,7 +31,7 @@ function App() {
     switch (role) {
       case 'waiter': return 'Vue Service';
       case 'cook': return 'Vue Cuisine';
-      case 'kds': return 'Kitchen Display System';
+      case 'kds': return 'Cuisine Bis';
       case 'manager': return 'Gestion';
       default: return '';
     }

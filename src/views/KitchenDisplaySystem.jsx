@@ -267,7 +267,7 @@ export default function KitchenDisplaySystem({ orders, updateOrderStatus, update
         <div className="kds-container">
             {/* Header */}
             <div className="kds-header">
-                <h2>Kitchen Display System</h2>
+                <h2>Cuisine Bis</h2>
 
                 {/* Station Filter */}
                 <div className="kds-filter-bar">
